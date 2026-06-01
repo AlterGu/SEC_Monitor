@@ -57,6 +57,17 @@ DB_PATH=data/sec_monitor.db
 
 ### 3. Run with Docker (Recommended)
 
+**Option A: Use pre-built image from GitHub Container Registry (easiest)**
+
+No need to clone the repo. Just create a `.env` file and run:
+
+```bash
+docker pull ghcr.io/altergu/sec_monitor:main
+docker run -d --name sec-monitor --env-file .env -v sec-data:/app/data ghcr.io/altergu/sec_monitor:main
+```
+
+**Option B: Build from source**
+
 ```bash
 docker-compose up -d
 ```

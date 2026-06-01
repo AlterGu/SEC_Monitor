@@ -57,6 +57,17 @@ DB_PATH=data/sec_monitor.db
 
 ### 3. Docker 运行（推荐）
 
+**方式 A: 使用 GitHub Container Registry 预构建镜像（最简单）**
+
+无需克隆仓库，只需创建 `.env` 文件后直接运行：
+
+```bash
+docker pull ghcr.io/altergu/sec_monitor:main
+docker run -d --name sec-monitor --env-file .env -v sec-data:/app/data ghcr.io/altergu/sec_monitor:main
+```
+
+**方式 B: 从源码构建**
+
 ```bash
 docker-compose up -d
 ```
