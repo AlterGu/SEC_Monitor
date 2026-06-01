@@ -1,5 +1,7 @@
 # SEC Monitor Telegram Bot
 
+English | [中文](README_CN.md)
+
 A Telegram bot that monitors SEC EDGAR filings for specified stocks and sends AI-summarized notifications.
 
 ## Features
