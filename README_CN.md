@@ -148,11 +148,13 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 | `DB_PATH` | 否 | `data/sec_monitor.db` | SQLite 数据库文件路径 |
 | `DB_BACKEND` | 否 | `sqlite` | 数据库后端：`sqlite` 或 `supabase` |
 | `SUPABASE_URL` | 否 | - | Supabase 项目 URL（`DB_BACKEND=supabase` 时必填） |
-| `SUPABASE_KEY` | 否 | - | Supabase anon key（`DB_BACKEND=supabase` 时必填） |
+| `SUPABASE_KEY` | 否 | - | Supabase **service_role** key（`DB_BACKEND=supabase` 时必填） |
 
 ### 使用 Supabase（可选）
 
-设置 `DB_BACKEND=supabase` 并填入 Supabase 凭证。然后在 Supabase SQL Editor 中创建所需表：
+设置 `DB_BACKEND=supabase` 并填入 Supabase 凭证。请使用 **service_role** key（在 Supabase Dashboard > Project Settings > API 中获取），不要使用 anon key。service_role key 可以绕过 Row Level Security，这是服务端应用所必需的。
+
+然后在 Supabase SQL Editor 中创建所需表：
 
 ```sql
 CREATE TABLE IF NOT EXISTS subscriptions (
