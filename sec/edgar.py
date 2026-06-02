@@ -41,16 +41,26 @@ class EdgarClient:
 
         async with await self._get_session() as session:
             async with session.get(COMPANY_TICKERS_URL) as resp:
-                resp.raise_for_status()
+                logger.info(f"SEC tickers API status: {resp.status}")
+                if resp.status != 200:
+                    text = await resp.text()
+                    logger.error(f"SEC tickers API error: {text[:500]}")
+                    raise ValueError(f"SEC API returned status {resp.status}")
                 data = await resp.json()
+
+        logger.info(f"Loaded {len(data)} tickers from SEC, searching for '{ticker}'")
 
         for entry in data.values():
             if entry["ticker"].upper() == ticker:
                 cik = str(entry["cik_str"]).zfill(10)
                 name = entry["title"]
                 self._ticker_cache[ticker] = (cik, name)
+                logger.info(f"Found ticker {ticker}: CIK={cik}, name={name}")
                 return cik, name
 
+        # Show a few sample tickers for debugging
+        sample = [e["ticker"] for e in list(data.values())[:5]]
+        logger.error(f"Ticker '{ticker}' not found. Sample tickers: {sample}")
         raise ValueError(f"Ticker '{ticker}' not found on SEC EDGAR")
 
     async def get_latest_filings(
