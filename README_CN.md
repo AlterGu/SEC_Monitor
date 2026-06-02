@@ -167,9 +167,23 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 
 ### 使用 Supabase（可选）
 
-设置 `DB_BACKEND=supabase` 并填入 Supabase 凭证。请使用 **service_role** key（在 Supabase Dashboard > Project Settings > API 中获取），不要使用 anon key。service_role key 可以绕过 Row Level Security，这是服务端应用所必需的。
+使用 Supabase 需要配置三个变量：
 
-如果设置了 `SUPABASE_DB_URL`（PostgreSQL 直连地址），机器人启动时会自动检查并创建所需表。否则需要手动在 Supabase SQL Editor 中创建：
+| 变量 | 用途 | 获取方式 |
+|------|------|----------|
+| `SUPABASE_URL` | Supabase REST API 地址 | Dashboard > Settings > API > Project URL |
+| `SUPABASE_KEY` | 数据操作（增删改查） | Dashboard > Settings > API > **service_role** key |
+| `SUPABASE_DB_URL` | 启动时自动建表 | Dashboard > Settings > Database > Connection string > URI |
+
+- `SUPABASE_KEY` **必填** — 所有数据读写通过 Supabase REST API 客户端。必须使用 **service_role** key（不要用 anon key），它可以绕过 Row Level Security。
+- `SUPABASE_DB_URL` **可选** — 填写后启动时自动检查并创建所需表。不填写则需手动建表。
+
+`SUPABASE_DB_URL` 示例：
+```
+postgresql://postgres.yourref:your-password@aws-1-xx-xxxx-x.pooler.supabase.com:5432/postgres
+```
+
+如果选择手动建表，在 Supabase SQL Editor 中执行：
 
 ```sql
 CREATE TABLE IF NOT EXISTS subscriptions (

@@ -167,9 +167,23 @@ To find your Telegram user ID, send `/start` to `@userinfobot`.
 
 ### Using Supabase (Optional)
 
-Set `DB_BACKEND=supabase` and provide your Supabase credentials. Use the **service_role** key (found in Supabase Dashboard > Project Settings > API), not the anon key. The service_role key bypasses Row Level Security, which is required for this server-side application.
+Three config variables are needed for Supabase:
 
-If `SUPABASE_DB_URL` is set (direct PostgreSQL connection string), the bot will automatically check and create required tables on startup. Otherwise, create them manually in Supabase SQL Editor:
+| Variable | Purpose | Where to find |
+|----------|---------|---------------|
+| `SUPABASE_URL` | Supabase REST API endpoint | Dashboard > Settings > API > Project URL |
+| `SUPABASE_KEY` | Data operations (CRUD) | Dashboard > Settings > API > **service_role** key |
+| `SUPABASE_DB_URL` | Auto-create tables on startup | Dashboard > Settings > Database > Connection string > URI |
+
+- `SUPABASE_KEY` is **required** — all data reads/writes go through the Supabase REST API client. Use the **service_role** key (not anon), which bypasses Row Level Security.
+- `SUPABASE_DB_URL` is **optional** — if set, the bot checks and creates tables automatically on startup. Otherwise, you must create tables manually.
+
+Example `SUPABASE_DB_URL`:
+```
+postgresql://postgres.yourref:your-password@aws-1-xx-xxxx-x.pooler.supabase.com:5432/postgres
+```
+
+If you prefer to create tables manually, run this in Supabase SQL Editor:
 
 ```sql
 CREATE TABLE IF NOT EXISTS subscriptions (
