@@ -4,6 +4,8 @@ from telegram import Update
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
+    MessageHandler,
+    filters,
 )
 
 import config
@@ -16,8 +18,59 @@ logger = logging.getLogger(__name__)
 
 edgar = EdgarClient()
 
+# In-memory set of user IDs that have passed password auth
+_verified_users: set[int] = set()
+
+
+def _is_authorized(user_id: int) -> bool:
+    """Check if a user is authorized via whitelist."""
+    return not config.ALLOWED_USER_IDS or user_id in config.ALLOWED_USER_IDS
+
+
+def _is_verified(user_id: int) -> bool:
+    """Check if a user has passed password verification."""
+    if not config.ACCESS_PASSWORD:
+        return True
+    return user_id in _verified_users
+
+
+def _needs_password(user_id: int) -> bool:
+    """Check if a user needs to enter a password."""
+    return bool(config.ACCESS_PASSWORD) and not config.ALLOWED_USER_IDS and user_id not in _verified_users
+
+
+async def _check_access(update: Update) -> bool:
+    """Check access and send rejection message if denied. Returns True if allowed."""
+    user_id = update.effective_user.id
+
+    if not _is_authorized(user_id):
+        await update.message.reply_text("Access denied. Your user ID is not in the whitelist.")
+        return False
+
+    if _needs_password(user_id):
+        await update.message.reply_text("Please enter the access password:")
+        return False
+
+    return True
+
+
+async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle password input from unauthenticated users."""
+    if not _needs_password(update.effective_user.id):
+        return
+
+    if update.message.text == config.ACCESS_PASSWORD:
+        _verified_users.add(update.effective_user.id)
+        await update.message.reply_text("Password correct. You now have access.\n\nUse /start to see available commands.")
+        logger.info(f"User {update.effective_user.id} authenticated via password")
+    else:
+        await update.message.reply_text("Wrong password. Try again:")
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _check_access(update):
+        return
+
     await update.message.reply_text(
         "📊 *SEC Monitor Bot*\n\n"
         "I monitor SEC filings for your stocks and send summaries.\n\n"
@@ -33,6 +86,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def monitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _check_access(update):
+        return
+
     if not context.args:
         await update.message.reply_text("Usage: /monitor <TICKER>\nExample: /monitor RKLB")
         return
@@ -56,14 +112,14 @@ async def monitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-    # Sync scheduler to pick up new subscription
     await sync_jobs(context.application)
-
-    # Immediately check for recent filings
     await _check_and_notify(update, context, user_id, ticker, cik, company_name)
 
 
 async def unmonitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _check_access(update):
+        return
+
     if not context.args:
         await update.message.reply_text("Usage: /unmonitor <TICKER>")
         return
@@ -80,6 +136,9 @@ async def unmonitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def list_subscriptions(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _check_access(update):
+        return
+
     user_id = update.effective_user.id
     subs = await database.get_subscriptions(user_id)
 
@@ -96,6 +155,9 @@ async def list_subscriptions(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _check_access(update):
+        return
+
     if not context.args:
         await update.message.reply_text("Usage: /check <TICKER>")
         return
@@ -115,6 +177,9 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def set_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await _check_access(update):
+        return
+
     if not context.args:
         await update.message.reply_text("Usage: /interval <MINUTES>\nExample: /interval 30")
         return
@@ -208,4 +273,5 @@ def get_handlers() -> list:
         CommandHandler("list", list_subscriptions),
         CommandHandler("check", check),
         CommandHandler("interval", set_interval),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_password),
     ]

@@ -14,6 +14,14 @@ DB_BACKEND = os.getenv("DB_BACKEND", "sqlite")  # sqlite or supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
+# Access control
+# Comma-separated Telegram user IDs. If set, only these users can access the bot.
+ALLOWED_USER_IDS: list[int] = [
+    int(uid.strip()) for uid in os.getenv("ALLOWED_USER_IDS", "").split(",") if uid.strip()
+]
+# Access password. If ALLOWED_USER_IDS is empty and this is set, users must enter this password first.
+ACCESS_PASSWORD = os.getenv("ACCESS_PASSWORD", "")
+
 # SEC filing types to monitor by default
 DEFAULT_FORM_TYPES = ["10-K", "10-Q", "8-K", "S-1", "20-F", "6-K"]
 

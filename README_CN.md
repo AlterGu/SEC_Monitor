@@ -149,6 +149,20 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 | `DB_BACKEND` | 否 | `sqlite` | 数据库后端：`sqlite` 或 `supabase` |
 | `SUPABASE_URL` | 否 | - | Supabase 项目 URL（`DB_BACKEND=supabase` 时必填） |
 | `SUPABASE_KEY` | 否 | - | Supabase **service_role** key（`DB_BACKEND=supabase` 时必填） |
+| `ALLOWED_USER_IDS` | 否 | （空） | 白名单 Telegram user ID（逗号分隔） |
+| `ACCESS_PASSWORD` | 否 | （空） | 访问密码（未设置白名单时必填） |
+
+### 访问控制
+
+根据配置有三种模式：
+
+| 模式 | `ALLOWED_USER_IDS` | `ACCESS_PASSWORD` | 行为 |
+|------|-------------------|-------------------|------|
+| 开放 | 空 | 空 | 任何人都能使用 |
+| 密码 | 空 | 已设置 | 用户需先输入密码 |
+| 白名单 | 已设置 | 任意 | 仅白名单用户可访问 |
+
+获取自己的 Telegram user ID：向 `@userinfobot` 发送任意消息。
 
 ### 使用 Supabase（可选）
 

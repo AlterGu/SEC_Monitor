@@ -149,6 +149,20 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 | `DB_BACKEND` | No | `sqlite` | Database backend: `sqlite` or `supabase` |
 | `SUPABASE_URL` | No | - | Supabase project URL (required if `DB_BACKEND=supabase`) |
 | `SUPABASE_KEY` | No | - | Supabase **service_role** key (required if `DB_BACKEND=supabase`) |
+| `ALLOWED_USER_IDS` | No | (empty) | Comma-separated Telegram user IDs for whitelist access |
+| `ACCESS_PASSWORD` | No | (empty) | Access password (required if `ALLOWED_USER_IDS` is not set) |
+
+### Access Control
+
+Three modes based on configuration:
+
+| Mode | `ALLOWED_USER_IDS` | `ACCESS_PASSWORD` | Behavior |
+|------|-------------------|-------------------|----------|
+| Open | empty | empty | Anyone can use the bot |
+| Password | empty | set | Users must enter the password first |
+| Whitelist | set | any | Only listed user IDs can access |
+
+To find your Telegram user ID, send `/start` to `@userinfobot`.
 
 ### Using Supabase (Optional)
 
