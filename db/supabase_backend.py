@@ -91,3 +91,19 @@ class SupabaseBackend(DatabaseBackend):
             },
             on_conflict="user_id,accession_no",
         ).execute()
+
+    async def is_user_verified(self, user_id: int) -> bool:
+        resp = (
+            self._client.table("verified_users")
+            .select("user_id")
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        return len(resp.data) > 0
+
+    async def mark_user_verified(self, user_id: int):
+        self._client.table("verified_users").upsert(
+            {"user_id": user_id},
+            on_conflict="user_id",
+        ).execute()

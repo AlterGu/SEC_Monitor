@@ -191,6 +191,11 @@ CREATE TABLE IF NOT EXISTS seen_filings (
     UNIQUE(user_id, accession_no)
 );
 
+CREATE TABLE IF NOT EXISTS verified_users (
+    user_id BIGINT PRIMARY KEY,
+    verified_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_seen_user_acc ON seen_filings(user_id, accession_no);
 CREATE INDEX IF NOT EXISTS idx_sub_user ON subscriptions(user_id);
 ```

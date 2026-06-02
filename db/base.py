@@ -43,3 +43,11 @@ class DatabaseBackend(ABC):
     @abstractmethod
     async def mark_filing_seen(self, user_id: int, accession_no: str, ticker: str = ""):
         ...
+
+    @abstractmethod
+    async def is_user_verified(self, user_id: int) -> bool:
+        ...
+
+    @abstractmethod
+    async def mark_user_verified(self, user_id: int):
+        ...

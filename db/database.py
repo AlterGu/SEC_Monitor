@@ -63,3 +63,11 @@ async def is_filing_seen(user_id: int, accession_no: str) -> bool:
 
 async def mark_filing_seen(user_id: int, accession_no: str, ticker: str = ""):
     await _get_backend().mark_filing_seen(user_id, accession_no, ticker)
+
+
+async def is_user_verified(user_id: int) -> bool:
+    return await _get_backend().is_user_verified(user_id)
+
+
+async def mark_user_verified(user_id: int):
+    await _get_backend().mark_user_verified(user_id)

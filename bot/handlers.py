@@ -18,25 +18,17 @@ logger = logging.getLogger(__name__)
 
 edgar = EdgarClient()
 
-# In-memory set of user IDs that have passed password auth
-_verified_users: set[int] = set()
-
 
 def _is_authorized(user_id: int) -> bool:
     """Check if a user is authorized via whitelist."""
     return not config.ALLOWED_USER_IDS or user_id in config.ALLOWED_USER_IDS
 
 
-def _is_verified(user_id: int) -> bool:
-    """Check if a user has passed password verification."""
-    if not config.ACCESS_PASSWORD:
-        return True
-    return user_id in _verified_users
-
-
-def _needs_password(user_id: int) -> bool:
+async def _needs_password(user_id: int) -> bool:
     """Check if a user needs to enter a password."""
-    return bool(config.ACCESS_PASSWORD) and not config.ALLOWED_USER_IDS and user_id not in _verified_users
+    if not config.ACCESS_PASSWORD or config.ALLOWED_USER_IDS:
+        return False
+    return not await database.is_user_verified(user_id)
 
 
 async def _check_access(update: Update) -> bool:
@@ -47,7 +39,7 @@ async def _check_access(update: Update) -> bool:
         await update.message.reply_text("Access denied. Your user ID is not in the whitelist.")
         return False
 
-    if _needs_password(user_id):
+    if await _needs_password(user_id):
         await update.message.reply_text("Please enter the access password:")
         return False
 
@@ -56,11 +48,11 @@ async def _check_access(update: Update) -> bool:
 
 async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle password input from unauthenticated users."""
-    if not _needs_password(update.effective_user.id):
+    if not await _needs_password(update.effective_user.id):
         return
 
     if update.message.text == config.ACCESS_PASSWORD:
-        _verified_users.add(update.effective_user.id)
+        await database.mark_user_verified(update.effective_user.id)
         await update.message.reply_text("Password correct. You now have access.\n\nUse /start to see available commands.")
         logger.info(f"User {update.effective_user.id} authenticated via password")
     else:

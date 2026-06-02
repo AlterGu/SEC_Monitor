@@ -44,6 +44,11 @@ class SQLiteBackend(DatabaseBackend):
                 UNIQUE(user_id, accession_no)
             );
 
+            CREATE TABLE IF NOT EXISTS verified_users (
+                user_id INTEGER PRIMARY KEY,
+                verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_seen_user_acc
                 ON seen_filings(user_id, accession_no);
             CREATE INDEX IF NOT EXISTS idx_sub_user
@@ -120,5 +125,21 @@ class SQLiteBackend(DatabaseBackend):
             VALUES (?, ?, ?)
             """,
             (user_id, accession_no, ticker),
+        )
+        await db.commit()
+
+    async def is_user_verified(self, user_id: int) -> bool:
+        db = await self._get_conn()
+        cursor = await db.execute(
+            "SELECT 1 FROM verified_users WHERE user_id = ?",
+            (user_id,),
+        )
+        return await cursor.fetchone() is not None
+
+    async def mark_user_verified(self, user_id: int):
+        db = await self._get_conn()
+        await db.execute(
+            "INSERT OR IGNORE INTO verified_users (user_id) VALUES (?)",
+            (user_id,),
         )
         await db.commit()
