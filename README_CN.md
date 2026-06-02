@@ -149,6 +149,7 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 | `DB_BACKEND` | 否 | `sqlite` | 数据库后端：`sqlite` 或 `supabase` |
 | `SUPABASE_URL` | 否 | - | Supabase 项目 URL（`DB_BACKEND=supabase` 时必填） |
 | `SUPABASE_KEY` | 否 | - | Supabase **service_role** key（`DB_BACKEND=supabase` 时必填） |
+| `SUPABASE_DB_URL` | 否 | - | Supabase PostgreSQL 直连地址（启动时自动建表） |
 | `ALLOWED_USER_IDS` | 否 | （空） | 白名单 Telegram user ID（逗号分隔） |
 | `ACCESS_PASSWORD` | 否 | （空） | 访问密码（未设置白名单时必填） |
 
@@ -168,7 +169,7 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 
 设置 `DB_BACKEND=supabase` 并填入 Supabase 凭证。请使用 **service_role** key（在 Supabase Dashboard > Project Settings > API 中获取），不要使用 anon key。service_role key 可以绕过 Row Level Security，这是服务端应用所必需的。
 
-然后在 Supabase SQL Editor 中创建所需表：
+如果设置了 `SUPABASE_DB_URL`（PostgreSQL 直连地址），机器人启动时会自动检查并创建所需表。否则需要手动在 Supabase SQL Editor 中创建：
 
 ```sql
 CREATE TABLE IF NOT EXISTS subscriptions (

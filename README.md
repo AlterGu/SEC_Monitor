@@ -149,6 +149,7 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 | `DB_BACKEND` | No | `sqlite` | Database backend: `sqlite` or `supabase` |
 | `SUPABASE_URL` | No | - | Supabase project URL (required if `DB_BACKEND=supabase`) |
 | `SUPABASE_KEY` | No | - | Supabase **service_role** key (required if `DB_BACKEND=supabase`) |
+| `SUPABASE_DB_URL` | No | - | Supabase direct PostgreSQL URL (auto-create tables on startup) |
 | `ALLOWED_USER_IDS` | No | (empty) | Comma-separated Telegram user IDs for whitelist access |
 | `ACCESS_PASSWORD` | No | (empty) | Access password (required if `ALLOWED_USER_IDS` is not set) |
 
@@ -168,7 +169,7 @@ To find your Telegram user ID, send `/start` to `@userinfobot`.
 
 Set `DB_BACKEND=supabase` and provide your Supabase credentials. Use the **service_role** key (found in Supabase Dashboard > Project Settings > API), not the anon key. The service_role key bypasses Row Level Security, which is required for this server-side application.
 
-Then create the required tables in Supabase SQL Editor:
+If `SUPABASE_DB_URL` is set (direct PostgreSQL connection string), the bot will automatically check and create required tables on startup. Otherwise, create them manually in Supabase SQL Editor:
 
 ```sql
 CREATE TABLE IF NOT EXISTS subscriptions (

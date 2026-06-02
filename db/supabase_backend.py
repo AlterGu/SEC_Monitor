@@ -1,10 +1,44 @@
 import logging
 
+import asyncpg
 from supabase import create_client, Client
 
+import config
 from db.base import DatabaseBackend
 
 logger = logging.getLogger(__name__)
+
+_TABLES_SQL = """
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    ticker TEXT NOT NULL,
+    cik TEXT NOT NULL,
+    company_name TEXT NOT NULL DEFAULT '',
+    interval_minutes INT NOT NULL DEFAULT 60,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, ticker)
+);
+
+CREATE TABLE IF NOT EXISTS seen_filings (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    accession_no TEXT NOT NULL,
+    ticker TEXT NOT NULL DEFAULT '',
+    seen_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, accession_no)
+);
+
+CREATE TABLE IF NOT EXISTS verified_users (
+    user_id BIGINT PRIMARY KEY,
+    verified_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_seen_user_acc ON seen_filings(user_id, accession_no);
+CREATE INDEX IF NOT EXISTS idx_sub_user ON subscriptions(user_id);
+"""
+
+_EXPECTED_TABLES = {"subscriptions", "seen_filings", "verified_users"}
 
 
 class SupabaseBackend(DatabaseBackend):
@@ -12,7 +46,55 @@ class SupabaseBackend(DatabaseBackend):
         self._client: Client = create_client(url, key)
 
     async def init(self):
-        logger.info("Supabase backend connected (tables must be created manually)")
+        if not config.SUPABASE_DB_URL:
+            logger.warning(
+                "SUPABASE_DB_URL not set - cannot auto-create tables. "
+                "Tables must exist in Supabase. See README for SQL schema."
+            )
+            return
+
+        conn = None
+        try:
+            conn = await asyncpg.connect(config.SUPABASE_DB_URL)
+
+            # Check which tables exist
+            rows = await conn.fetch(
+                "SELECT table_name FROM information_schema.tables "
+                "WHERE table_schema = 'public' AND table_name = ANY($1)",
+                list(_EXPECTED_TABLES),
+            )
+            existing = {r["table_name"] for r in rows}
+            missing = _EXPECTED_TABLES - existing
+
+            if missing:
+                logger.info(f"Missing tables: {missing}. Creating...")
+                await conn.execute(_TABLES_SQL)
+                logger.info("All tables created successfully")
+            else:
+                logger.info("All required tables exist")
+
+                # Check columns for each table
+                for table in _EXPECTED_TABLES:
+                    cols = await conn.fetch(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'public' AND table_name = $1",
+                        table,
+                    )
+                    col_names = {r["column_name"] for r in cols}
+                    logger.debug(f"Table '{table}' columns: {col_names}")
+
+        except Exception as e:
+            logger.error(f"Failed to check/create Supabase tables: {e}")
+            # Still try to run CREATE TABLE IF NOT EXISTS as fallback
+            if conn:
+                try:
+                    await conn.execute(_TABLES_SQL)
+                    logger.info("Fallback table creation succeeded")
+                except Exception as e2:
+                    logger.error(f"Fallback table creation also failed: {e2}")
+        finally:
+            if conn:
+                await conn.close()
 
     async def close(self):
         pass

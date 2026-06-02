@@ -13,6 +13,9 @@ DB_PATH = os.getenv("DB_PATH", "data/sec_monitor.db")
 DB_BACKEND = os.getenv("DB_BACKEND", "sqlite")  # sqlite or supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+# Direct PostgreSQL connection string for DDL operations (auto-create tables)
+# Get from Supabase Dashboard > Settings > Database > Connection string > URI
+SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
 
 # Access control
 # Comma-separated Telegram user IDs. If set, only these users can access the bot.
