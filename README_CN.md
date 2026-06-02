@@ -146,6 +146,38 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 | `DEFAULT_INTERVAL_MINUTES` | 否 | `60` | 默认轮询间隔（分钟） |
 | `USER_AGENT` | 否 | `SEC Monitor Bot (...)` | SEC 请求的 User-Agent（必须包含联系方式） |
 | `DB_PATH` | 否 | `data/sec_monitor.db` | SQLite 数据库文件路径 |
+| `DB_BACKEND` | 否 | `sqlite` | 数据库后端：`sqlite` 或 `supabase` |
+| `SUPABASE_URL` | 否 | - | Supabase 项目 URL（`DB_BACKEND=supabase` 时必填） |
+| `SUPABASE_KEY` | 否 | - | Supabase anon key（`DB_BACKEND=supabase` 时必填） |
+
+### 使用 Supabase（可选）
+
+设置 `DB_BACKEND=supabase` 并填入 Supabase 凭证。然后在 Supabase SQL Editor 中创建所需表：
+
+```sql
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    ticker TEXT NOT NULL,
+    cik TEXT NOT NULL,
+    company_name TEXT NOT NULL DEFAULT '',
+    interval_minutes INT NOT NULL DEFAULT 60,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, ticker)
+);
+
+CREATE TABLE IF NOT EXISTS seen_filings (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    accession_no TEXT NOT NULL,
+    ticker TEXT NOT NULL DEFAULT '',
+    seen_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, accession_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_seen_user_acc ON seen_filings(user_id, accession_no);
+CREATE INDEX IF NOT EXISTS idx_sub_user ON subscriptions(user_id);
+```
 
 ## 项目结构
 

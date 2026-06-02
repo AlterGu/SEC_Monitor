@@ -146,6 +146,38 @@ OPENAI_MODEL=Qwen/Qwen2.5-72B-Instruct
 | `DEFAULT_INTERVAL_MINUTES` | No | `60` | Default polling interval in minutes |
 | `USER_AGENT` | No | `SEC Monitor Bot (...)` | User-Agent header for SEC requests (must include contact info) |
 | `DB_PATH` | No | `data/sec_monitor.db` | SQLite database file path |
+| `DB_BACKEND` | No | `sqlite` | Database backend: `sqlite` or `supabase` |
+| `SUPABASE_URL` | No | - | Supabase project URL (required if `DB_BACKEND=supabase`) |
+| `SUPABASE_KEY` | No | - | Supabase anon key (required if `DB_BACKEND=supabase`) |
+
+### Using Supabase (Optional)
+
+Set `DB_BACKEND=supabase` and provide your Supabase credentials. Then create the required tables in Supabase SQL Editor:
+
+```sql
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    ticker TEXT NOT NULL,
+    cik TEXT NOT NULL,
+    company_name TEXT NOT NULL DEFAULT '',
+    interval_minutes INT NOT NULL DEFAULT 60,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, ticker)
+);
+
+CREATE TABLE IF NOT EXISTS seen_filings (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    accession_no TEXT NOT NULL,
+    ticker TEXT NOT NULL DEFAULT '',
+    seen_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, accession_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_seen_user_acc ON seen_filings(user_id, accession_no);
+CREATE INDEX IF NOT EXISTS idx_sub_user ON subscriptions(user_id);
+```
 
 ## Project Structure
 
