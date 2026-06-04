@@ -7,7 +7,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "")  # 留空则使用官方地址, 第三方填如 https://api.example.com/v1
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-DEFAULT_INTERVAL_MINUTES = int(os.getenv("DEFAULT_INTERVAL_MINUTES", "60"))
+DEFAULT_INTERVAL_MINUTES = int(os.getenv("DEFAULT_INTERVAL_MINUTES", "240"))
 USER_AGENT = os.getenv("USER_AGENT", "SEC Monitor Bot (your-email@example.com)")
 DB_PATH = os.getenv("DB_PATH", "data/sec_monitor.db")
 DB_BACKEND = os.getenv("DB_BACKEND", "sqlite")  # sqlite or supabase
@@ -29,3 +29,4 @@ ACCESS_PASSWORD = os.getenv("ACCESS_PASSWORD", "")
 DEFAULT_FORM_TYPES = ["10-K", "10-Q", "8-K", "S-1", "20-F", "6-K"]
 
 MAX_SUMMARY_CHARS = 15000  # Max chars to send to OpenAI for summarization
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()  # DEBUG, INFO, WARNING, ERROR, CRITICAL

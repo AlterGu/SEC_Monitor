@@ -10,7 +10,7 @@ from db.database import init_db, close_db
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
+    level=getattr(logging, config.LOG_LEVEL, logging.INFO),
 )
 logger = logging.getLogger(__name__)
 
