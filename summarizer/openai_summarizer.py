@@ -53,7 +53,17 @@ async def summarize_filing(content: str, form_type: str, company_name: str) -> s
             max_tokens=1000,
             temperature=0.3,
         )
+        logger.debug(f"OpenAI response type: {type(response)}")
+
+        if isinstance(response, str):
+            logger.error(f"OpenAI returned string instead of object: {response[:200]}")
+            return f"API error: {response[:200]}"
+
+        if not hasattr(response, 'choices') or not response.choices:
+            logger.error(f"Invalid response structure: {response}")
+            return "API returned invalid response format"
+
         return response.choices[0].message.content or "Summary unavailable."
     except Exception as e:
-        logger.error(f"OpenAI summarization failed: {e}")
-        return f"Summary generation failed: {e}"
+        logger.error(f"OpenAI summarization failed: {e}", exc_info=True)
+        return f"Summary generation failed: {str(e)[:100]}"
