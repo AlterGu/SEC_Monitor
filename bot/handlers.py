@@ -1,4 +1,5 @@
 import logging
+from html import escape
 
 from telegram import Update
 from telegram.ext import (
@@ -9,6 +10,7 @@ from telegram.ext import (
 )
 
 import config
+from bot.messaging import send_long_message
 from bot.scheduler import sync_jobs
 from db import database
 from sec.edgar import EdgarClient
@@ -66,14 +68,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📊 *SEC Monitor Bot*\n\n"
         "I monitor SEC filings for your stocks and send summaries.\n\n"
-        "*Commands:*\n"
-        "/monitor <TICKER> - Start monitoring a stock\n"
-        "/unmonitor <TICKER> - Stop monitoring\n"
+        "<b>Commands:</b>\n"
+        "/monitor &lt;TICKER&gt; - Start monitoring a stock\n"
+        "/unmonitor &lt;TICKER&gt; - Stop monitoring\n"
         "/list - Show your monitored stocks\n"
-        "/check <TICKER> - Check for new filings now\n"
-        "/interval <MINUTES> - Set check interval (default: 60)\n\n"
-        "Example: `/monitor RKLB`",
-        parse_mode="Markdown",
+        "/check &lt;TICKER&gt; - Check for new filings now\n"
+        "/interval &lt;MINUTES&gt; - Set check interval (default: 240)\n\n"
+        "Example: <code>/monitor RKLB</code>",
+        parse_mode="HTML",
     )
 
 
@@ -98,10 +100,10 @@ async def monitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await database.add_subscription(user_id, ticker, cik, company_name, interval)
 
     await update.message.reply_text(
-        f"✅ Now monitoring *{company_name}* (`{ticker}`)\n"
+        f"✅ Now monitoring <b>{company_name}</b> (<code>{ticker}</code>)\n"
         f"Checking every {interval} minutes.\n"
         f"Use /check {ticker} to check now.",
-        parse_mode="Markdown",
+        parse_mode="HTML",
     )
 
     await sync_jobs(context.application)
@@ -121,10 +123,10 @@ async def unmonitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     removed = await database.remove_subscription(user_id, ticker)
     if removed:
-        await update.message.reply_text(f"✅ Stopped monitoring `{ticker}`.", parse_mode="Markdown")
+        await update.message.reply_text(f"✅ Stopped monitoring <code>{ticker}</code>.", parse_mode="HTML")
         await sync_jobs(context.application)
     else:
-        await update.message.reply_text(f"❌ You weren't monitoring `{ticker}`.", parse_mode="Markdown")
+        await update.message.reply_text(f"❌ You weren't monitoring <code>{ticker}</code>.", parse_mode="HTML")
 
 
 async def list_subscriptions(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -138,12 +140,12 @@ async def list_subscriptions(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("You're not monitoring any stocks.\nUse /monitor <TICKER> to start.")
         return
 
-    lines = ["📊 *Your monitored stocks:*\n"]
+    lines = ["📊 <b>Your monitored stocks:</b>\n"]
     for sub in subs:
         lines.append(
-            f"• `{sub['ticker']}` - {sub['company_name']} (every {sub['interval_minutes']}m)"
+            f"• <code>{sub['ticker']}</code> - {sub['company_name']} (every {sub['interval_minutes']}m)"
         )
-    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+    await update.message.reply_text("\n".join(lines), parse_mode="HTML")
 
 
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -161,7 +163,7 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sub = next((s for s in subs if s["ticker"] == ticker), None)
 
     if not sub:
-        await update.message.reply_text(f"❌ You're not monitoring `{ticker}`. Use /monitor first.", parse_mode="Markdown")
+        await update.message.reply_text(f"❌ You're not monitoring <code>{ticker}</code>. Use /monitor first.", parse_mode="HTML")
         return
 
     await update.message.reply_text(f"🔍 Checking {ticker}...")
@@ -234,24 +236,16 @@ async def _check_and_notify(
             summary = f"Could not generate summary: {e}"
 
         message = (
-            f"🔔 *SEC Filing Alert: {ticker}*\n\n"
-            f"📋 *Form:* {filing.form_type}\n"
-            f"🏢 *Company:* {filing.company_name}\n"
-            f"📅 *Filed:* {filing.filed_date}\n"
-            f"🔗 *Filing:* [View on SEC]({filing.filing_url})\n"
-            f"📄 *Document:* [Read Full]({filing.document_url})\n\n"
-            f"📝 *Summary:*\n{summary}"
+            f"🔔 <b>SEC Filing Alert: {escape(ticker)}</b>\n\n"
+            f"📋 <b>Form:</b> {escape(filing.form_type)}\n"
+            f"🏢 <b>Company:</b> {escape(filing.company_name)}\n"
+            f"📅 <b>Filed:</b> {escape(filing.filed_date)}\n"
+            f"🔗 <b>Filing:</b> <a href=\"{filing.filing_url}\">View on SEC</a>\n"
+            f"📄 <b>Document:</b> <a href=\"{filing.document_url}\">Read Full</a>\n\n"
+            f"📝 <b>Summary:</b>\n{escape(summary)}"
         )
 
-        try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=message,
-                parse_mode="Markdown",
-                disable_web_page_preview=True,
-            )
-        except Exception as e:
-            logger.error(f"Failed to send message to {user_id}: {e}")
+        await send_long_message(context.bot, user_id, message)
 
         await database.mark_filing_seen(user_id, filing.accession_no, ticker)
 

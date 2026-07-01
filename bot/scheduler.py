@@ -1,9 +1,11 @@
 import logging
 from datetime import datetime, timedelta
+from html import escape
 
 from telegram.ext import Application, ContextTypes
 
 from db import database
+from bot.messaging import send_long_message
 from sec.edgar import EdgarClient
 from summarizer.openai_summarizer import summarize_filing
 
@@ -42,24 +44,16 @@ async def check_user_ticker(context: ContextTypes.DEFAULT_TYPE):
             summary = f"Could not generate summary: {e}"
 
         message = (
-            f"🔔 *SEC Filing Alert: {ticker}*\n\n"
-            f"📋 *Form:* {filing.form_type}\n"
-            f"🏢 *Company:* {filing.company_name}\n"
-            f"📅 *Filed:* {filing.filed_date}\n"
-            f"🔗 *Filing:* [View on SEC]({filing.filing_url})\n"
-            f"📄 *Document:* [Read Full]({filing.document_url})\n\n"
-            f"📝 *Summary:*\n{summary}"
+            f"🔔 <b>SEC Filing Alert: {escape(ticker)}</b>\n\n"
+            f"📋 <b>Form:</b> {escape(filing.form_type)}\n"
+            f"🏢 <b>Company:</b> {escape(filing.company_name)}\n"
+            f"📅 <b>Filed:</b> {escape(filing.filed_date)}\n"
+            f"🔗 <b>Filing:</b> <a href=\"{filing.filing_url}\">View on SEC</a>\n"
+            f"📄 <b>Document:</b> <a href=\"{filing.document_url}\">Read Full</a>\n\n"
+            f"📝 <b>Summary:</b>\n{escape(summary)}"
         )
 
-        try:
-            await context.bot.send_message(
-                chat_id=user_id,
-                text=message,
-                parse_mode="Markdown",
-                disable_web_page_preview=True,
-            )
-        except Exception as e:
-            logger.error(f"Failed to send message to {user_id}: {e}")
+        await send_long_message(context.bot, user_id, message)
 
         await database.mark_filing_seen(user_id, filing.accession_no, ticker)
 

@@ -44,26 +44,42 @@ async def summarize_filing(content: str, form_type: str, company_name: str) -> s
 {content}"""
 
     try:
-        response = await client.chat.completions.create(
-            model=config.OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            max_tokens=1000,
-            temperature=0.3,
-        )
-        logger.debug(f"OpenAI response type: {type(response)}")
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
 
-        if isinstance(response, str):
-            logger.error(f"OpenAI returned string instead of object: {response[:200]}")
-            return f"API error: {response[:200]}"
+        full_summary = ""
+        for attempt in range(3):  # max 3 calls = 6000 tokens
+            response = await client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=messages,
+                max_tokens=2000,
+                temperature=0.3,
+            )
+            logger.debug(f"OpenAI response type: {type(response)}")
 
-        if not hasattr(response, 'choices') or not response.choices:
-            logger.error(f"Invalid response structure: {response}")
-            return "API returned invalid response format"
+            if isinstance(response, str):
+                logger.error(f"OpenAI returned string instead of object: {response[:200]}")
+                return f"API error: {response[:200]}"
 
-        return response.choices[0].message.content or "Summary unavailable."
+            if not hasattr(response, 'choices') or not response.choices:
+                logger.error(f"Invalid response structure: {response}")
+                return "API returned invalid response format"
+
+            choice = response.choices[0]
+            chunk = choice.message.content or ""
+            full_summary += chunk
+
+            if choice.finish_reason != "length":
+                break
+
+            # Truncated: ask model to continue
+            logger.info(f"Summary truncated (attempt {attempt + 1}), continuing...")
+            messages.append({"role": "assistant", "content": chunk})
+            messages.append({"role": "user", "content": "请继续，从上次中断的地方接着写，不要重复已有内容。"})
+
+        return full_summary.strip() or "Summary unavailable."
     except Exception as e:
         logger.error(f"OpenAI summarization failed: {e}", exc_info=True)
         return f"Summary generation failed: {str(e)[:100]}"
