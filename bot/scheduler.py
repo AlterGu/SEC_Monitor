@@ -50,7 +50,7 @@ async def check_user_ticker(context: ContextTypes.DEFAULT_TYPE):
             f"📅 <b>Filed:</b> {escape(filing.filed_date)}\n"
             f"🔗 <b>Filing:</b> <a href=\"{filing.filing_url}\">View on SEC</a>\n"
             f"📄 <b>Document:</b> <a href=\"{filing.document_url}\">Read Full</a>\n\n"
-            f"📝 <b>Summary:</b>\n{escape(summary)}"
+            f"📝 <b>Summary:</b>\n{summary}"
         )
 
         await send_long_message(context.bot, user_id, message)

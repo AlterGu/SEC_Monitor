@@ -23,13 +23,19 @@ SYSTEM_PROMPT = """You are a financial analyst assistant. Summarize SEC filing d
 
 Rules:
 - Output MUST be in Chinese (中文)
-- Use numbered outline format with bullet points
+- Format with Telegram-compatible HTML tags for rendering:
+  - Use <b>bold</b> for section headers and key terms
+  - Use <i>italic</i> for emphasis if needed
+  - Use line breaks (\\n) for structure
+  - Do NOT use markdown (*, _, #, etc.) - only HTML tags
+- Use numbered outline format
 - Focus on key items: financial results, material agreements, risk factors, business changes, acquisitions, executive changes
 - Include specific numbers/percentages when available
 - Keep it concise but comprehensive (aim for 5-15 bullet points)
 - For 8-K: highlight which items are being reported (e.g., Item 2.02 Results of Operations)
 - For 10-K/10-Q: focus on revenue, earnings, guidance, risk factor changes
-- For S-1: focus on IPO details, use of proceeds, business model"""
+- For S-1: focus on IPO details, use of proceeds, business model
+- IMPORTANT: Escape any raw & as &amp;, < as &lt;, > as &gt; in the content, but keep your own formatting tags intact"""
 
 
 async def summarize_filing(content: str, form_type: str, company_name: str) -> str:
