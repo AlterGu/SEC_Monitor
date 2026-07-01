@@ -130,15 +130,18 @@ class EdgarClient:
                 resp.raise_for_status()
                 content_type = resp.headers.get("Content-Type", "")
 
-                if "html" in content_type or url.endswith((".htm", ".html")):
+                if "xml" in content_type or url.endswith(".xml"):
+                    # XML documents: parse with XML parser for reliability
+                    raw = await resp.text()
+                    soup = BeautifulSoup(raw, "xml")
+                    text = soup.get_text(separator="\n", strip=True)
+                elif "html" in content_type or url.endswith((".htm", ".html")):
                     html = await resp.text()
                     soup = BeautifulSoup(html, "lxml")
                     # Remove script and style elements
                     for tag in soup(["script", "style"]):
                         tag.decompose()
                     text = soup.get_text(separator="\n", strip=True)
-                elif "xml" in content_type or url.endswith((".xml", ".txt")):
-                    text = await resp.text()
                 else:
                     text = await resp.text()
 
