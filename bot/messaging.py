@@ -5,27 +5,32 @@ from telegram.constants import ParseMode
 
 logger = logging.getLogger(__name__)
 
-# Telegram limit is 4096; leave margin for safety
 MAX_MSG_LEN = 4000
 
+# MarkdownV2 special characters that must be escaped
+_V2_SPECIAL = set("_*[]()~`>#+-=|{}.!")
 
-def markdown_to_html(text: str) -> str:
-    """Convert basic Markdown to Telegram-compatible HTML.
 
-    Handles: **bold**, *italic*, [link](url), and escapes raw HTML entities.
-    """
-    # 1. Escape raw HTML entities first
-    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+def _escape_chars(text: str) -> str:
+    """Escape all MarkdownV2 special characters in text."""
+    result = []
+    for c in text:
+        if c in _V2_SPECIAL:
+            result.append("\\")
+        result.append(c)
+    return "".join(result)
 
-    # 2. Convert Markdown to HTML (order matters: bold before italic)
-    # **bold** -> <b>bold</b>
-    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
-    # *italic* -> <i>italic</i>
-    text = re.sub(r"\*(.+?)\*", r"<i>\1</i>", text)
-    # [text](url) -> <a href="url">text</a>
-    text = re.sub(r"\[(.+?)\]\((https?://[^\s)]+)\)", r'<a href="\2">\1</a>', text)
 
-    return text
+def escape_markdown_v2(text: str) -> str:
+    """Escape text for Telegram MarkdownV2, preserving **bold** formatting."""
+    result = []
+    for part in re.split(r"(\*\*.+?\*\*)", text):
+        if part.startswith("**") and part.endswith("**") and len(part) >= 4:
+            # Bold segment: escape inner content but keep ** delimiters
+            result.append("**" + _escape_chars(part[2:-2]) + "**")
+        else:
+            result.append(_escape_chars(part))
+    return "".join(result)
 
 
 def split_message(text: str, max_len: int = MAX_MSG_LEN) -> list[str]:
@@ -39,10 +44,9 @@ def split_message(text: str, max_len: int = MAX_MSG_LEN) -> list[str]:
             chunks.append(text)
             break
 
-        # Try to split at the last newline within the limit
         split_at = text.rfind("\n", 0, max_len)
         if split_at == -1 or split_at < max_len // 2:
-            split_at = max_len  # no good newline, hard split
+            split_at = max_len
 
         chunks.append(text[:split_at].rstrip())
         text = text[split_at:].lstrip()
@@ -50,7 +54,7 @@ def split_message(text: str, max_len: int = MAX_MSG_LEN) -> list[str]:
     return chunks
 
 
-async def send_long_message(bot, chat_id: int, text: str, parse_mode: str = ParseMode.HTML):
+async def send_long_message(bot, chat_id: int, text: str, parse_mode: str = ParseMode.MARKDOWN_V2):
     """Send a message, splitting into multiple parts if it exceeds Telegram's limit."""
     chunks = split_message(text)
 

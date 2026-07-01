@@ -1,5 +1,4 @@
 import logging
-from html import escape
 
 from telegram import Update
 from telegram.ext import (
@@ -10,7 +9,7 @@ from telegram.ext import (
 )
 
 import config
-from bot.messaging import markdown_to_html, send_long_message
+from bot.messaging import escape_markdown_v2, send_long_message
 from bot.scheduler import sync_jobs
 from db import database
 from sec.edgar import EdgarClient
@@ -68,14 +67,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📊 *SEC Monitor Bot*\n\n"
         "I monitor SEC filings for your stocks and send summaries.\n\n"
-        "<b>Commands:</b>\n"
-        "/monitor &lt;TICKER&gt; - Start monitoring a stock\n"
-        "/unmonitor &lt;TICKER&gt; - Stop monitoring\n"
+        "Commands:\n"
+        "/monitor <TICKER> - Start monitoring a stock\n"
+        "/unmonitor <TICKER> - Stop monitoring\n"
         "/list - Show your monitored stocks\n"
-        "/check &lt;TICKER&gt; - Check for new filings now\n"
-        "/interval &lt;MINUTES&gt; - Set check interval (default: 240)\n\n"
-        "Example: <code>/monitor RKLB</code>",
-        parse_mode="HTML",
+        "/check <TICKER> - Check for new filings now\n"
+        "/interval <MINUTES> - Set check interval (default: 240)\n\n"
+        "Example: /monitor RKLB",
     )
 
 
@@ -100,10 +98,9 @@ async def monitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await database.add_subscription(user_id, ticker, cik, company_name, interval)
 
     await update.message.reply_text(
-        f"✅ Now monitoring <b>{company_name}</b> (<code>{ticker}</code>)\n"
+        f"✅ Now monitoring {company_name} ({ticker})\n"
         f"Checking every {interval} minutes.\n"
         f"Use /check {ticker} to check now.",
-        parse_mode="HTML",
     )
 
     await sync_jobs(context.application)
@@ -123,10 +120,10 @@ async def unmonitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     removed = await database.remove_subscription(user_id, ticker)
     if removed:
-        await update.message.reply_text(f"✅ Stopped monitoring <code>{ticker}</code>.", parse_mode="HTML")
+        await update.message.reply_text(f"✅ Stopped monitoring {ticker}.")
         await sync_jobs(context.application)
     else:
-        await update.message.reply_text(f"❌ You weren't monitoring <code>{ticker}</code>.", parse_mode="HTML")
+        await update.message.reply_text(f"❌ You weren't monitoring {ticker}.")
 
 
 async def list_subscriptions(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -140,12 +137,12 @@ async def list_subscriptions(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("You're not monitoring any stocks.\nUse /monitor <TICKER> to start.")
         return
 
-    lines = ["📊 <b>Your monitored stocks:</b>\n"]
+    lines = ["📊 Your monitored stocks:\n"]
     for sub in subs:
         lines.append(
-            f"• <code>{sub['ticker']}</code> - {sub['company_name']} (every {sub['interval_minutes']}m)"
+            f"• {sub['ticker']} - {sub['company_name']} (every {sub['interval_minutes']}m)"
         )
-    await update.message.reply_text("\n".join(lines), parse_mode="HTML")
+    await update.message.reply_text("\n".join(lines))
 
 
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -163,7 +160,7 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sub = next((s for s in subs if s["ticker"] == ticker), None)
 
     if not sub:
-        await update.message.reply_text(f"❌ You're not monitoring <code>{ticker}</code>. Use /monitor first.", parse_mode="HTML")
+        await update.message.reply_text(f"❌ You're not monitoring {ticker}. Use /monitor first.")
         return
 
     await update.message.reply_text(f"🔍 Checking {ticker}...")
@@ -236,13 +233,13 @@ async def _check_and_notify(
             summary = f"Could not generate summary: {e}"
 
         message = (
-            f"🔔 <b>SEC Filing Alert: {escape(ticker)}</b>\n\n"
-            f"📋 <b>Form:</b> {escape(filing.form_type)}\n"
-            f"🏢 <b>Company:</b> {escape(filing.company_name)}\n"
-            f"📅 <b>Filed:</b> {escape(filing.filed_date)}\n"
-            f"🔗 <b>Filing:</b> <a href=\"{filing.filing_url}\">View on SEC</a>\n"
-            f"📄 <b>Document:</b> <a href=\"{filing.document_url}\">Read Full</a>\n\n"
-            f"📝 <b>Summary:</b>\n{markdown_to_html(summary)}"
+            f"🔔 **SEC Filing Alert: {escape_markdown_v2(ticker)}**\n\n"
+            f"📋 **Form:** {escape_markdown_v2(filing.form_type)}\n"
+            f"🏢 **Company:** {escape_markdown_v2(filing.company_name)}\n"
+            f"📅 **Filed:** {escape_markdown_v2(filing.filed_date)}\n"
+            f"🔗 **Filing:** [View on SEC]({filing.filing_url})\n"
+            f"📄 **Document:** [Read Full]({filing.document_url})\n\n"
+            f"📝 **Summary:**\n{escape_markdown_v2(summary)}"
         )
 
         await send_long_message(context.bot, user_id, message)

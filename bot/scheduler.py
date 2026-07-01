@@ -1,11 +1,10 @@
 import logging
 from datetime import datetime, timedelta
-from html import escape
 
 from telegram.ext import Application, ContextTypes
 
 from db import database
-from bot.messaging import markdown_to_html, send_long_message
+from bot.messaging import escape_markdown_v2, send_long_message
 from sec.edgar import EdgarClient
 from summarizer.openai_summarizer import summarize_filing
 
@@ -44,13 +43,13 @@ async def check_user_ticker(context: ContextTypes.DEFAULT_TYPE):
             summary = f"Could not generate summary: {e}"
 
         message = (
-            f"🔔 <b>SEC Filing Alert: {escape(ticker)}</b>\n\n"
-            f"📋 <b>Form:</b> {escape(filing.form_type)}\n"
-            f"🏢 <b>Company:</b> {escape(filing.company_name)}\n"
-            f"📅 <b>Filed:</b> {escape(filing.filed_date)}\n"
-            f"🔗 <b>Filing:</b> <a href=\"{filing.filing_url}\">View on SEC</a>\n"
-            f"📄 <b>Document:</b> <a href=\"{filing.document_url}\">Read Full</a>\n\n"
-            f"📝 <b>Summary:</b>\n{markdown_to_html(summary)}"
+            f"🔔 **SEC Filing Alert: {escape_markdown_v2(ticker)}**\n\n"
+            f"📋 **Form:** {escape_markdown_v2(filing.form_type)}\n"
+            f"🏢 **Company:** {escape_markdown_v2(filing.company_name)}\n"
+            f"📅 **Filed:** {escape_markdown_v2(filing.filed_date)}\n"
+            f"🔗 **Filing:** [View on SEC]({filing.filing_url})\n"
+            f"📄 **Document:** [Read Full]({filing.document_url})\n\n"
+            f"📝 **Summary:**\n{escape_markdown_v2(summary)}"
         )
 
         await send_long_message(context.bot, user_id, message)
