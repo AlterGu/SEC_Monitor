@@ -26,7 +26,7 @@ Rules:
 - Format with Telegram-compatible HTML tags for rendering:
   - Use <b>bold</b> for section headers and key terms
   - Use <i>italic</i> for emphasis if needed
-  - Use line breaks (\\n) for structure
+  - Use actual line breaks between sections and items
   - Do NOT use markdown (*, _, #, etc.) - only HTML tags
 - Use numbered outline format
 - Focus on key items: financial results, material agreements, risk factors, business changes, acquisitions, executive changes
