@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 import config
-from bot.messaging import send_long_message
+from bot.messaging import markdown_to_html, send_long_message
 from bot.scheduler import sync_jobs
 from db import database
 from sec.edgar import EdgarClient
@@ -242,7 +242,7 @@ async def _check_and_notify(
             f"📅 <b>Filed:</b> {escape(filing.filed_date)}\n"
             f"🔗 <b>Filing:</b> <a href=\"{filing.filing_url}\">View on SEC</a>\n"
             f"📄 <b>Document:</b> <a href=\"{filing.document_url}\">Read Full</a>\n\n"
-            f"📝 <b>Summary:</b>\n{summary}"
+            f"📝 <b>Summary:</b>\n{markdown_to_html(summary)}"
         )
 
         await send_long_message(context.bot, user_id, message)

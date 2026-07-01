@@ -1,4 +1,5 @@
 import logging
+import re
 
 from telegram.constants import ParseMode
 
@@ -6,6 +7,25 @@ logger = logging.getLogger(__name__)
 
 # Telegram limit is 4096; leave margin for safety
 MAX_MSG_LEN = 4000
+
+
+def markdown_to_html(text: str) -> str:
+    """Convert basic Markdown to Telegram-compatible HTML.
+
+    Handles: **bold**, *italic*, [link](url), and escapes raw HTML entities.
+    """
+    # 1. Escape raw HTML entities first
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    # 2. Convert Markdown to HTML (order matters: bold before italic)
+    # **bold** -> <b>bold</b>
+    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
+    # *italic* -> <i>italic</i>
+    text = re.sub(r"\*(.+?)\*", r"<i>\1</i>", text)
+    # [text](url) -> <a href="url">text</a>
+    text = re.sub(r"\[(.+?)\]\((https?://[^\s)]+)\)", r'<a href="\2">\1</a>', text)
+
+    return text
 
 
 def split_message(text: str, max_len: int = MAX_MSG_LEN) -> list[str]:

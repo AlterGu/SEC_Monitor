@@ -5,7 +5,7 @@ from html import escape
 from telegram.ext import Application, ContextTypes
 
 from db import database
-from bot.messaging import send_long_message
+from bot.messaging import markdown_to_html, send_long_message
 from sec.edgar import EdgarClient
 from summarizer.openai_summarizer import summarize_filing
 
@@ -50,7 +50,7 @@ async def check_user_ticker(context: ContextTypes.DEFAULT_TYPE):
             f"📅 <b>Filed:</b> {escape(filing.filed_date)}\n"
             f"🔗 <b>Filing:</b> <a href=\"{filing.filing_url}\">View on SEC</a>\n"
             f"📄 <b>Document:</b> <a href=\"{filing.document_url}\">Read Full</a>\n\n"
-            f"📝 <b>Summary:</b>\n{summary}"
+            f"📝 <b>Summary:</b>\n{markdown_to_html(summary)}"
         )
 
         await send_long_message(context.bot, user_id, message)
